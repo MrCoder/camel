@@ -16,17 +16,18 @@
  */
 package org.apache.camel.example.restlet.jdbc;
 
+import org.apache.camel.component.restlet.RestletComponent;
 import org.apache.camel.spring.boot.FatJarRouter;
+import org.restlet.Component;
 import org.restlet.ext.spring.SpringServerServlet;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ImportResource;
 
 import java.util.HashMap;
 
 @SpringBootApplication
-@ImportResource(value = "common.xml")
+//@ImportResource(value = "common.xml")
 public class MySpringBootRouter extends FatJarRouter {
 
     @Override
@@ -51,6 +52,15 @@ public class MySpringBootRouter extends FatJarRouter {
         return servletRegistrationBean;
     }
 
+    @Bean(name = "RestletComponent")
+    public Component getComponent() {
+        return new Component();
+    }
+
+    @Bean(name = "RestletComponentService")
+    public RestletComponent getRestletComponent(Component component) {
+        return new org.apache.camel.component.restlet.RestletComponent(component);
+    }
 //    @Bean
 //    public ContextLoaderListener getContextLoaderListener() {
 //        return new org.springframework.web.context.ContextLoaderListener();
