@@ -17,34 +17,58 @@
 
 package org.apache.camel.example.restlet.jdbc;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.spring.SpringCamelContext;
+import org.apache.camel.spring.javaconfig.SingleRouteCamelConfiguration;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.annotation.Configuration;
 
-public class MyRouteConfig extends RouteBuilder {
+@Configuration
+public class MyRouteConfig extends SingleRouteCamelConfiguration implements InitializingBean {
+
+    /**
+     * Returns the CamelContext which support Spring
+     */
+    @Override
+    protected CamelContext createCamelContext() throws Exception {
+        return new SpringCamelContext(getApplicationContext());
+    }
 
     @Override
-    public void configure() {
-        from("restlet:/persons?restletMethod=POST")
-                .setBody(simple("insert into person(firstName, lastName) values('${header.firstName}','${header.lastName}')"))
-                .to("jdbc:dataSource")
-                .setBody(simple("select * from person where id in (select max(id) from person)"))
-                .to("jdbc:dataSource");
+    public void afterPropertiesSet() throws Exception {
 
-        from("restlet:/persons/{personId}?restletMethods=GET,PUT,DELETE")
-                .choice()
-                    .when(simple("${header.CamelHttpMethod} == 'GET'"))
+    }
+
+    @Override
+    public RouteBuilder route() {
+        return new RouteBuilder() {
+            @Override
+            public void configure() {
+                from("restlet:/persons?restletMethod=POST")
+                        .setBody(simple("insert into person(firstName, lastName) values('${header.firstName}','${header.lastName}')"))
+                        .to("log:out")
+                        .setBody(simple("select * from person where id in (select max(id) from person)"))
+                        .to("log:out");
+
+                from("restlet:/persons/{personId}?restletMethods=GET,PUT,DELETE")
+                        .choice()
+                        .when(simple("${header.CamelHttpMethod} == 'GET'"))
                         .setBody(simple("select * from person where id = ${header.personId}"))
-                    .when(simple("${header.CamelHttpMethod} == 'PUT'"))
+                        .when(simple("${header.CamelHttpMethod} == 'PUT'"))
                         .setBody(simple("update person set firstName='${header.firstName}', lastName='${header.lastName}' where id = ${header.personId}"))
-                    .when(simple("${header.CamelHttpMethod} == 'DELETE'"))
+                        .when(simple("${header.CamelHttpMethod} == 'DELETE'"))
                         .setBody(simple("delete from person where id = ${header.personId}"))
-                    .otherwise()
+                        .otherwise()
                         .stop()
-                .end()
-                .to("jdbc:dataSource");
+                        .end()
+                        .to("log:out");
 
-        from("restlet:/persons?restletMethod=GET")
-                .setBody(simple("select * from person"))
-                .to("jdbc:dataSource");
+                from("restlet:/persons?restletMethod=GET")
+                        .setBody(simple("select * from person"))
+                        .to("log:out");
+            }
+        };
     }
 }
 
